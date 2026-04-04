@@ -52,5 +52,51 @@ await pdfService.init();
 const buffer = await pdfService.generateFromHtml('<h1>Invoice 123</h1>');
 ```
 
+### 4. Storage Module (`src/storage.ts`)
+Wrapper around AWS S3 / DigitalOcean Spaces for managing persistent MSME documents/photos.
+- **Rules:** Uses Pre-signed URLs to keep the backend stateless and performant.
+```typescript
+import { createStorageClientFromEnv } from '@aptly/services';
+
+const storage = createStorageClientFromEnv();
+const uploadUrl = await storage.getUploadUrl('invoice_123.pdf', 'application/pdf');
+```
+
+### 5. Payments Module (Razorpay) (`src/payment.ts`)
+Indian MSME payment integration for order creation and webhook verification.
+```typescript
+import { createPaymentClientFromEnv } from '@aptly/services';
+
+const payments = createPaymentClientFromEnv();
+const order = await payments.createOrder(50000); // Amount in paise (Rs 500)
+```
+
+### 6. WhatsApp Messaging (`src/whatsapp.ts`)
+Meta Cloud API wrapper for automated business notifications.
+```typescript
+import { createWhatsAppClientFromEnv } from '@aptly/services';
+
+const wa = createWhatsAppClientFromEnv();
+await wa.sendTemplateMessage({ to: '919876543210', template: 'order_update' });
+```
+
+### 7. QR Utility (`src/qr.ts`)
+Stateless QR code generation for physical tracking (Restaurants/Inventory).
+```typescript
+import { qrService } from '@aptly/services';
+
+const qrDataUri = await qrService.generateDataUri('https://aptly.build/item/1');
+```
+
+### 8. Cron Scheduler (`src/cron.ts`)
+Lightweight `node-cron` abstraction for daily report generation.
+```typescript
+import { cronService } from '@aptly/services';
+
+cronService.scheduleTask('0 8 * * *', () => {
+    // Run inventory digest every morning at 8 AM
+});
+```
+
 ## Setup & Testing
 This library builds to commonjs. During AI scaffolding, simply import components as needed. Remember to map the relevant Coolify Dashboard variables to your application.
