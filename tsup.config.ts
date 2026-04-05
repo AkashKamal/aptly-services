@@ -1,13 +1,21 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: {
+    index: 'src/index.ts',
+    auth: 'src/auth.ts',
+    email: 'src/email.ts',
+    pdf: 'src/pdf.ts',
+    storage: 'src/storage.ts',
+    payment: 'src/payment.ts',
+    whatsapp: 'src/whatsapp.ts',
+    qr: 'src/qr.ts',
+    cron: 'src/cron.ts',
+  },
   format: ['cjs', 'esm'],
-  dts: false,
+  dts: true,
   splitting: false,
   sourcemap: true,
   clean: true,
-  minify: false,
-  target: 'es2022',
-  external: ['@aws-sdk/client-s3', 'puppeteer', 'razorpay', 'bcrypt', 'jsonwebtoken', 'nodemailer', 'qrcode', 'node-cron'],
+  external: ['puppeteer'],
 });

@@ -1,9 +1,10 @@
 import * as QRCode from 'qrcode';
+
 /**
  * QR Code Service specifically targeted for the MSME Restaurant Inventory workflow.
  * Completely stateless to allow rapid dataURL generation on demand.
  */
-export declare const qrService: {
+declare const qrService: {
     /**
      * Generates a base64 encoded data URI string of the QR code.
      * Format: `data:image/png;base64,...`
@@ -14,4 +15,5 @@ export declare const qrService: {
      */
     generateBuffer(data: string, options?: QRCode.QRCodeToBufferOptions): Promise<Buffer>;
 };
-//# sourceMappingURL=qr.d.ts.map
+
+export { qrService };

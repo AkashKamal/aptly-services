@@ -1,32 +1,34 @@
 import { z } from 'zod';
-export declare const WhatsAppEnvSchema: z.ZodObject<{
+
+declare const WhatsAppEnvSchema: z.ZodObject<{
     WHATSAPP_TOKEN: z.ZodString;
     WHATSAPP_PHONE_ID: z.ZodString;
 }, z.core.$strip>;
-export type WhatsAppEnvConfig = z.infer<typeof WhatsAppEnvSchema>;
-export interface WhatsAppConfig {
+type WhatsAppEnvConfig = z.infer<typeof WhatsAppEnvSchema>;
+interface WhatsAppConfig {
     token: string;
     phoneId: string;
 }
-export interface SendMessageOptions {
+interface SendMessageOptions {
     to: string;
     template: string;
     language?: string;
     components?: any[];
 }
-export declare function createWhatsAppClient(config: WhatsAppConfig): {
+declare function createWhatsAppClient(config: WhatsAppConfig): {
     /**
      * Sends a template message via Meta WhatsApp Cloud API.
      */
-    sendTemplateMessage(options: SendMessageOptions): Promise<any>;
+    sendTemplateMessage(options: SendMessageOptions): Promise<unknown>;
 };
 /**
  * Validates Coolify environment variables and instantiates the WhatsApp wrapper.
  */
-export declare function createWhatsAppClientFromEnv(env?: Record<string, string | undefined>): {
+declare function createWhatsAppClientFromEnv(env?: Record<string, string | undefined>): {
     /**
      * Sends a template message via Meta WhatsApp Cloud API.
      */
-    sendTemplateMessage(options: SendMessageOptions): Promise<any>;
+    sendTemplateMessage(options: SendMessageOptions): Promise<unknown>;
 };
-//# sourceMappingURL=whatsapp.d.ts.map
+
+export { type SendMessageOptions, type WhatsAppConfig, type WhatsAppEnvConfig, WhatsAppEnvSchema, createWhatsAppClient, createWhatsAppClientFromEnv };

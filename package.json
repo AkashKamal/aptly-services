@@ -1,7 +1,7 @@
 {
-  "name": "aptly-services",
-  "version": "1.0.0",
-  "description": "",
+  "name": "@aptly/services",
+  "version": "1.1.0",
+  "description": "Production-ready backend service library for the Aptly modular platform. Provides auth, email, PDF, storage, payments, WhatsApp, QR, and cron services with Zod-validated environment configuration.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -10,15 +10,61 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./auth": {
+      "types": "./dist/auth.d.ts",
+      "import": "./dist/auth.mjs",
+      "require": "./dist/auth.js"
+    },
+    "./email": {
+      "types": "./dist/email.d.ts",
+      "import": "./dist/email.mjs",
+      "require": "./dist/email.js"
+    },
+    "./pdf": {
+      "types": "./dist/pdf.d.ts",
+      "import": "./dist/pdf.mjs",
+      "require": "./dist/pdf.js"
+    },
+    "./storage": {
+      "types": "./dist/storage.d.ts",
+      "import": "./dist/storage.mjs",
+      "require": "./dist/storage.js"
+    },
+    "./payment": {
+      "types": "./dist/payment.d.ts",
+      "import": "./dist/payment.mjs",
+      "require": "./dist/payment.js"
+    },
+    "./whatsapp": {
+      "types": "./dist/whatsapp.d.ts",
+      "import": "./dist/whatsapp.mjs",
+      "require": "./dist/whatsapp.js"
+    },
+    "./qr": {
+      "types": "./dist/qr.d.ts",
+      "import": "./dist/qr.mjs",
+      "require": "./dist/qr.js"
+    },
+    "./cron": {
+      "types": "./dist/cron.d.ts",
+      "import": "./dist/cron.mjs",
+      "require": "./dist/cron.js"
     }
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
-    "build": "tsup && tsc --emitDeclarationOnly --outDir dist",
-    "test": "vitest",
+    "build": "tsup",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["aptly", "backend", "services", "auth", "email", "pdf", "storage", "payments"],
+  "author": "Aptly",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
@@ -28,10 +74,12 @@
     "jsonwebtoken": "^9.0.3",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.4",
-    "puppeteer": "^24.40.0",
     "qrcode": "^1.5.4",
     "razorpay": "^2.9.6",
     "zod": "^4.3.6"
+  },
+  "optionalDependencies": {
+    "puppeteer": "^24.40.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -41,6 +89,7 @@
     "@types/nodemailer": "^7.0.11",
     "@types/qrcode": "^1.5.6",
     "@vitest/coverage-v8": "^4.1.2",
+    "puppeteer": "^24.40.0",
     "tsup": "^8.5.1",
     "typescript": "^6.0.2",
     "vitest": "^4.1.2"

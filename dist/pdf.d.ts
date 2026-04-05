@@ -2,14 +2,20 @@
  * A lightweight PDF generator that uses a single persistent Browser instance
  * to prevent massive memory spikes associated with creating new browser instances
  * for every PDF request.
+ *
+ * IMPORTANT: `puppeteer` is an optional dependency (~200MB).
+ * It is ONLY installed if you use this module. If your application does not
+ * need PDF generation, you can safely ignore it — the rest of @aptly/services
+ * will work without it.
  */
-export declare class PDFService {
+declare class PDFService {
     private browser;
     private isGenerating;
     private queue;
     /**
      * Initialize the headless browser.
      * This should be called once on application startup.
+     * Throws a clear error if puppeteer is not installed.
      */
     init(): Promise<void>;
     /**
@@ -29,5 +35,6 @@ export declare class PDFService {
 /**
  * Singleton instance to be used across the application.
  */
-export declare const pdfService: PDFService;
-//# sourceMappingURL=pdf.d.ts.map
+declare const pdfService: PDFService;
+
+export { PDFService, pdfService };

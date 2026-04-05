@@ -1,10 +1,32 @@
-import puppeteer, { Browser } from 'puppeteer';
-
 /**
  * A lightweight PDF generator that uses a single persistent Browser instance
  * to prevent massive memory spikes associated with creating new browser instances
  * for every PDF request.
+ *
+ * IMPORTANT: `puppeteer` is an optional dependency (~200MB).
+ * It is ONLY installed if you use this module. If your application does not
+ * need PDF generation, you can safely ignore it — the rest of @aptly/services
+ * will work without it.
  */
+
+let puppeteer: typeof import('puppeteer') | null = null;
+
+async function loadPuppeteer() {
+  if (puppeteer) return puppeteer;
+  try {
+    puppeteer = await import('puppeteer');
+    return puppeteer;
+  } catch {
+    throw new Error(
+      '[@aptly/services] PDF generation requires "puppeteer" to be installed.\n' +
+      'Install it with: npm install puppeteer\n' +
+      'It is listed as an optional dependency and is only needed if you use pdfService.'
+    );
+  }
+}
+
+type Browser = import('puppeteer').Browser;
+
 export class PDFService {
   private browser: Browser | null = null;
   private isGenerating = false;
@@ -13,10 +35,12 @@ export class PDFService {
   /**
    * Initialize the headless browser. 
    * This should be called once on application startup.
+   * Throws a clear error if puppeteer is not installed.
    */
   async init() {
     if (!this.browser) {
-      this.browser = await puppeteer.launch({
+      const pptr = await loadPuppeteer();
+      this.browser = await pptr.default.launch({
         headless: true,
         args: [
           '--no-sandbox',

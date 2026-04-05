@@ -28,8 +28,8 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // src/index.ts
-var index_exports = {};
-__export(index_exports, {
+var src_exports = {};
+__export(src_exports, {
   AuthEnvSchema: () => AuthEnvSchema,
   EmailEnvSchema: () => EmailEnvSchema,
   PDFService: () => PDFService,
@@ -50,7 +50,7 @@ __export(index_exports, {
   pdfService: () => pdfService,
   qrService: () => qrService
 });
-module.exports = __toCommonJS(index_exports);
+module.exports = __toCommonJS(src_exports);
 
 // src/auth.ts
 var jwt = __toESM(require("jsonwebtoken"));
@@ -139,18 +139,33 @@ function createEmailClientFromEnv(env = process.env) {
 }
 
 // src/pdf.ts
-var import_puppeteer = __toESM(require("puppeteer"));
+var puppeteer = null;
+async function loadPuppeteer() {
+  if (puppeteer) return puppeteer;
+  try {
+    puppeteer = await import("puppeteer");
+    return puppeteer;
+  } catch {
+    throw new Error(
+      '[@aptly/services] PDF generation requires "puppeteer" to be installed.\nInstall it with: npm install puppeteer\nIt is listed as an optional dependency and is only needed if you use pdfService.'
+    );
+  }
+}
 var PDFService = class {
-  browser = null;
-  isGenerating = false;
-  queue = [];
+  constructor() {
+    this.browser = null;
+    this.isGenerating = false;
+    this.queue = [];
+  }
   /**
    * Initialize the headless browser. 
    * This should be called once on application startup.
+   * Throws a clear error if puppeteer is not installed.
    */
   async init() {
     if (!this.browser) {
-      this.browser = await import_puppeteer.default.launch({
+      const pptr = await loadPuppeteer();
+      this.browser = await pptr.default.launch({
         headless: true,
         args: [
           "--no-sandbox",

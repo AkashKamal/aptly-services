@@ -1,13 +1,14 @@
 import { z } from 'zod';
-export declare const StorageEnvSchema: z.ZodObject<{
+
+declare const StorageEnvSchema: z.ZodObject<{
     S3_ENDPOINT: z.ZodString;
     S3_REGION: z.ZodString;
     S3_BUCKET: z.ZodString;
     S3_ACCESS_KEY: z.ZodString;
     S3_SECRET_KEY: z.ZodString;
 }, z.core.$strip>;
-export type StorageEnvConfig = z.infer<typeof StorageEnvSchema>;
-export interface StorageConfig {
+type StorageEnvConfig = z.infer<typeof StorageEnvSchema>;
+interface StorageConfig {
     endpoint: string;
     region: string;
     bucket: string;
@@ -16,7 +17,7 @@ export interface StorageConfig {
         secretAccessKey: string;
     };
 }
-export declare function createStorageClient(config: StorageConfig): {
+declare function createStorageClient(config: StorageConfig): {
     /**
      * Generates a pre-signed URL so the frontend can securely upload files
      * completely bypassing the backend server (Zero Data Bloat).
@@ -30,7 +31,7 @@ export declare function createStorageClient(config: StorageConfig): {
 /**
  * Instantiates the Storage client relying strictly on Coolify environment variables.
  */
-export declare function createStorageClientFromEnv(env?: Record<string, string | undefined>): {
+declare function createStorageClientFromEnv(env?: Record<string, string | undefined>): {
     /**
      * Generates a pre-signed URL so the frontend can securely upload files
      * completely bypassing the backend server (Zero Data Bloat).
@@ -41,4 +42,5 @@ export declare function createStorageClientFromEnv(env?: Record<string, string |
      */
     getDownloadUrl(key: string, expiresInSeconds?: number): Promise<string>;
 };
-//# sourceMappingURL=storage.d.ts.map
+
+export { type StorageConfig, type StorageEnvConfig, StorageEnvSchema, createStorageClient, createStorageClientFromEnv };
