@@ -58,13 +58,21 @@
   ],
   "scripts": {
     "build": "tsup",
-    "prepare": "npm run build",
     "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
-  "keywords": ["aptly", "backend", "services", "auth", "email", "pdf", "storage", "payments"],
+  "keywords": [
+    "aptly",
+    "backend",
+    "services",
+    "auth",
+    "email",
+    "pdf",
+    "storage",
+    "payments"
+  ],
   "author": "Aptly",
   "license": "ISC",
   "type": "commonjs",
