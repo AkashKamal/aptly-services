@@ -31,6 +31,9 @@ import { createPaymentClientFromEnv } from '@aptly/services/payment';
 import { createWhatsAppClientFromEnv } from '@aptly/services/whatsapp';
 import { qrService } from '@aptly/services/qr';
 import { cronService } from '@aptly/services/cron';
+import { RateLimiter } from '@aptly/services/rate-limit';
+import { OTPService } from '@aptly/services/otp';
+import { barcodeService } from '@aptly/services/barcode';
 ```
 
 ---
@@ -301,3 +304,44 @@ We welcome contributions! To add a new service:
 6.  Run `npm test` and `npm run build` before submitting a PR.
 
 </for_ai_agents>
+
+---
+
+#### Rate Limiter (`@aptly/services/rate-limit`)
+Generic rate limiting service with pluggable strategies and stores.
+
+- **Fixed Window**: Resets counts after a fixed duration.
+- **Token Bucket**: Allows for bursts while maintaining a steady rate.
+
+```typescript
+import { RateLimiter, FixedWindowStrategy, InMemoryStore } from '@aptly/services/rate-limit';
+
+const limiter = new RateLimiter(new FixedWindowStrategy(), new InMemoryStore());
+
+const res = await limiter.check('user_123', { limit: 10, window: 60 });
+if (!res.allowed) throw new Error('Too many requests');
+```
+
+---
+
+#### OTP Service (`@aptly/services/otp`)
+Secure OTP generation and verification.
+
+```typescript
+import { OTPService } from '@aptly/services/otp';
+
+const otpService = new OTPService();
+const code = await otpService.generate('user@example.com', { length: 6, type: 'numeric' });
+const isValid = await otpService.verify('user@example.com', code);
+```
+
+---
+
+#### Barcode (`@aptly/services/barcode`)
+Pure-JS 1D barcode generation as SVG strings.
+
+```typescript
+import { barcodeService } from '@aptly/services/barcode';
+
+const svg = barcodeService.generateSVG('ITEM123', { format: 'CODE128' });
+```

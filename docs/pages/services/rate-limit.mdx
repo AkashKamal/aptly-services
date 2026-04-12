@@ -1,0 +1,51 @@
+import { Steps, Callout } from 'nextra/components'
+
+# Rate Limiter Service
+
+A generic, high-performance rate limiting service designed for both single-instance and distributed applications.
+
+## Architecture
+
+The service uses the **Strategy Pattern** to allows you to swap algorithms and storage mechanisms without changing your implementation logic.
+
+- **Strategies**: `FixedWindowStrategy` (Default), `TokenBucketStrategy`.
+- **Stores**: `InMemoryStore` (Included). You can easily implement a `RedisStore` for distributed environments.
+
+## Usage
+
+<Steps>
+### Initialize the Limiter
+By default, it uses the Fixed Window algorithm and In-Memory storage.
+
+```typescript
+import { RateLimiter } from '@aptly/services/rate-limit';
+
+const limiter = new RateLimiter();
+```
+
+### Check a Limit
+Perform a check against an identifier (IP, User ID, API Key).
+
+```typescript
+const result = await limiter.check('client-ip-123', {
+  limit: 100,
+  window: 3600 // 1 hour in seconds
+});
+
+if (!result.allowed) {
+  console.log(`Rate limit exceeded! Resets in ${result.reset} seconds.`);
+}
+```
+</Steps>
+
+## Strategies
+
+### Fixed Window
+The simplest strategy. It resets the count exactly after the window duration passed. Note that this can allow up to 2x the limit at the boundary of two windows.
+
+### Token Bucket
+A more sophisticated algorithm that allows for **bursts** while maintaining a steady long-term rate. Ideal for APIs where users might send several requests in a second but should be limited over a minute.
+
+<Callout type="info">
+  For distributed systems (e.g., Kubernetes or multiple containers), implement a store that connects to Redis using the `RateStore` interface.
+</Callout>

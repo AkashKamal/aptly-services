@@ -1,0 +1,48 @@
+# Barcode Service
+
+Simple, high-performance 1D barcode generation for inventory, tracking, and labels.
+
+## Overview
+
+The service uses a pure-JS implementation (no canvas or OS dependencies) to generate high-quality **SVG** strings. These strings can be:
+- Displayed directly in web apps.
+- Embedded into PDFs using the **PDF Service**.
+- Saved as standalone files for printing.
+
+## Usage
+
+### Simple Generation
+
+```typescript
+import { barcodeService } from '@aptly/services/barcode';
+
+// Returns an SVG string of a Code 128 barcode
+const svg = barcodeService.generateSVG('SKU-123456');
+```
+
+### Supported Formats
+
+You can choose from several industry-standard formats:
+
+- `CODE128` (Default - Most versatile)
+- `EAN13` / `EAN8` (Retail standard)
+- `UPC` (North American retail)
+- `CODE39`
+- `ITF14`
+
+### Custom Styling
+
+```typescript
+const svg = barcodeService.generateSVG('12345678', {
+  format: 'EAN8',
+  width: 3,      // Width of a single bar
+  height: 80,    // Height in pixels
+  displayValue: true, // Show the text below the bars
+  fontSize: 16,
+  lineColor: '#2b2b2b'
+});
+```
+
+## AI Agent Integration
+
+When generating barcodes for inventory systems, always use the `CODE128` format unless specifically restricted, as it supports the widest range of characters and is most frequently used in professional warehouse operations.

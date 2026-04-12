@@ -55,6 +55,21 @@
       "types": "./dist/sso.d.ts",
       "import": "./dist/sso.mjs",
       "require": "./dist/sso.js"
+    },
+    "./rate-limit": {
+      "types": "./dist/rate-limit.d.ts",
+      "import": "./dist/rate-limit.mjs",
+      "require": "./dist/rate-limit.js"
+    },
+    "./otp": {
+      "types": "./dist/otp.d.ts",
+      "import": "./dist/otp.mjs",
+      "require": "./dist/otp.js"
+    },
+    "./barcode": {
+      "types": "./dist/barcode.d.ts",
+      "import": "./dist/barcode.mjs",
+      "require": "./dist/barcode.js"
     }
   },
   "files": [
@@ -85,12 +100,14 @@
     "@aws-sdk/client-s3": "^3.1024.0",
     "@aws-sdk/s3-request-presigner": "^3.1024.0",
     "bcrypt": "^6.0.0",
+    "jsbarcode": "^3.12.3",
     "jsonwebtoken": "^9.0.3",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.4",
     "pdfmake": "^0.3.7",
     "qrcode": "^1.5.4",
     "razorpay": "^2.9.6",
+    "xmldom": "^0.6.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

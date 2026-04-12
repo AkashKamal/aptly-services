@@ -7,3 +7,6 @@ export * from './whatsapp';
 export * from './payment';
 export * from './cron';
 export * from './sso';
+export * from './rate-limit';
+export * from './otp';
+export * from './barcode';

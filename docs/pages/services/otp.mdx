@@ -1,0 +1,50 @@
+import { Steps, Callout } from 'nextra/components'
+
+# OTP Service (2FA)
+
+Secure One-Time Password generation and verification for authentication, phone verification, or sensitive actions.
+
+## Usage
+
+<Steps>
+### Initialize the Service
+Reuses the storage infrastructure from the Rate Limiter.
+
+```typescript
+import { OTPService } from '@aptly/services/otp';
+
+const otp = new OTPService();
+```
+
+### Generate a Code
+Creates a secure code and stores it with a TTL (expiration).
+
+```typescript
+// Generates a 6-digit numeric OTP valid for 5 minutes
+const code = await otp.generate('user@example.com', {
+  length: 6,
+  type: 'numeric',
+  expiresIn: 300 
+});
+```
+
+### Verify the Code
+Checks if the provided code matches the stored one.
+
+```typescript
+const isValid = await otp.verify('user@example.com', '123456');
+
+if (isValid) {
+  // Proceed with authentication
+}
+```
+</Steps>
+
+## Security Features
+
+- **Store Reuse**: You can inject a `RedisStore` to handle OTPs across multiple server nodes.
+- **Lockout (Best Practice)**: Combine with the **Rate Limiter** service to prevent brute-forcing OTPs by limiting verification attempts.
+
+<Callout type="warning">
+  Always use the `alphanumeric` type for higher security in high-stakes environments.
+</Callout>
