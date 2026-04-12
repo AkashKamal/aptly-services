@@ -1,10 +1,3 @@
-var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
-}) : x)(function(x) {
-  if (typeof require !== "undefined") return require.apply(this, arguments);
-  throw Error('Dynamic require of "' + x + '" is not supported');
-});
-
 // src/auth.ts
 import * as jwt from "jsonwebtoken";
 import * as bcrypt from "bcrypt";
@@ -94,16 +87,13 @@ function createEmailClientFromEnv(env = process.env) {
 
 // src/pdf.ts
 import * as pdfmakeImport from "pdfmake";
-import path from "path";
 var pdfmake = pdfmakeImport.default || pdfmakeImport;
-var pdfKitPath = path.dirname(__require.resolve("pdfkit/package.json"));
-var fontsDir = path.join(pdfKitPath, "js/data");
 var fonts = {
   Helvetica: {
-    normal: path.join(fontsDir, "Helvetica.afm"),
-    bold: path.join(fontsDir, "Helvetica-Bold.afm"),
-    italics: path.join(fontsDir, "Helvetica-Oblique.afm"),
-    bolditalics: path.join(fontsDir, "Helvetica-BoldOblique.afm")
+    normal: "Helvetica",
+    bold: "Helvetica-Bold",
+    italics: "Helvetica-Oblique",
+    bolditalics: "Helvetica-BoldOblique"
   }
 };
 var PDFService = class {

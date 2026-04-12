@@ -3,19 +3,15 @@ const pdfmake: any = (pdfmakeImport as any).default || pdfmakeImport;
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import path from 'path';
 
-// Standard fonts for pdfmake in Node.js environment.
-// Resolving absolutely to avoid ENOENT errors in bundled environments.
-const pdfKitPath = path.dirname(require.resolve('pdfkit/package.json'));
-const fontsDir = path.join(pdfKitPath, 'js/data');
-
 const fonts = {
   Helvetica: {
-    normal: path.join(fontsDir, 'Helvetica.afm'),
-    bold: path.join(fontsDir, 'Helvetica-Bold.afm'),
-    italics: path.join(fontsDir, 'Helvetica-Oblique.afm'),
-    bolditalics: path.join(fontsDir, 'Helvetica-BoldOblique.afm')
+    normal: 'Helvetica',
+    bold: 'Helvetica-Bold',
+    italics: 'Helvetica-Oblique',
+    bolditalics: 'Helvetica-BoldOblique'
   }
 };
+
 
 export class PDFService {
   constructor() {
