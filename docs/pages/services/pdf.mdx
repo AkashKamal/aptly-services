@@ -1,0 +1,52 @@
+# PDF Service
+
+Native, memory-efficient PDF generation using `pdfmake`.
+
+## Why native?
+
+Standard PDF libraries for Node.js often rely on **Puppeteer** or **Playwright**, which require a full Chromium browser to be installed and running. This consumes ~500MB+ of RAM and requires complex container setup. 
+
+The `@aptly/services` PDF module is **stateless and pure-JS**, running with a 90% smaller memory footprint.
+
+## Usage
+
+Define your document using the standard `pdfmake` JSON schema.
+
+```typescript
+import { pdfService } from '@aptly/services/pdf';
+
+const docDefinition = {
+  content: [
+    { text: 'Invoice #1', style: 'header' },
+    {
+      table: {
+        body: [
+          ['Item', 'Total'],
+          ['Consulting', '₹50,000']
+        ]
+      }
+    }
+  ],
+  styles: {
+    header: { fontSize: 25, bold: true }
+  }
+};
+
+const pdfBuffer = await pdfService.generateDocument(docDefinition);
+```
+
+## Integration: Send via Email
+
+```typescript
+const pdfBuffer = await pdfService.generateDocument(docDef);
+await emailClient.send({
+  to: 'client@example.com',
+  subject: 'Your Invoice',
+  attachments: [{ filename: 'invoice.pdf', content: pdfBuffer }]
+});
+```
+
+## Resources
+
+- [PDFMake Playground](http://pdfmake.org/playground.html) - Design your templates visually then copy the JSON definition.
+- [Font Reference](http://pdfmake.org/#/fonts) - Custom font support details.

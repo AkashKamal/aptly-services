@@ -1,0 +1,43 @@
+# Auth Service
+
+The Auth service provides standard utilities for JWT session management and secure password hashing.
+
+## Usage
+
+### Password Hashing
+Uses `bcrypt` with a standard cost factor (10 rounds).
+
+```typescript
+import { createAuthFromEnv } from '@aptly/services/auth';
+
+const auth = createAuthFromEnv();
+const hash = await auth.hashPassword('user_password');
+const isValid = await auth.verifyPassword('user_password', hash);
+```
+
+### JWT Management
+Handles signing and verification of JSON Web Tokens.
+
+```typescript
+// Generate a token
+const token = auth.generateToken({ userId: 123, role: 'admin' });
+
+// Verify and decode a token
+try {
+  const decoded = auth.verifyToken<{ userId: number; role: string }>(token);
+  console.log(decoded.userId);
+} catch (err) {
+  console.error('Invalid or expired token');
+}
+```
+
+## Environment Variables
+
+| Variable | Requirement | Description |
+| :--- | :--- | :--- |
+| `JWT_SECRET` | Required | Min 16 characters. Used to sign tokens. |
+| `JWT_SESSION_DURATION` | Optional | Default: `24h`. Supports `zeit/ms` format (e.g., `1h`, `7d`). |
+
+## For AI Agents
+
+Always check the `JWT_SESSION_DURATION` before issuing tokens for long-running services. If no duration is provided, the library defaults to 24 hours. Verification throws on both signature mismatch and expiration.

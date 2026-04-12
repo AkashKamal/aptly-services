@@ -1,0 +1,25 @@
+# QR Code Service
+
+Stateless QR code generation for physical tracking and easy URL accessibility. No external API calls are made—everything is generated locally.
+
+## Usage
+
+### Generate Data URI
+Returns a `data:image/png;base64,...` string that can be used directly in an `<img>` tag.
+
+```typescript
+import { qrService } from '@aptly/services/qr';
+
+const dataUri = await qrService.generateDataUri('https://aptly.build/item/1');
+```
+
+### Generate Buffer
+Returns a raw PNG Buffer, which is useful for uploading to **Storage** or attaching to an **Email**.
+
+```typescript
+const buffer = await qrService.generateBuffer('https://aptly.build/item/1');
+```
+
+## AI Agent Integration
+
+This service is ideal for creating "Digital Twins" of physical items. When generating URLs for QR codes, always use the short-URL version (e.g. `aptly.build/x/123`) to keep the QR code pattern simple and easy for cameras to scan.

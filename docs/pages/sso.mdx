@@ -1,0 +1,81 @@
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# SSO Guide (Single Sign-On)
+
+The SSO module provides a unified, zero-dependency interface for integrating social logins into your Aptly platform applications. It supports Google, Microsoft, and Zoho out of the box.
+
+## Overview
+
+Unlike many libraries that require heavy vendor SDKs, `@aptly/services` uses the standard OAuth 2.0 and OpenID Connect (OIDC) protocols over native `fetch`. This ensures 100% compatibility and minimal bundle size.
+
+## Implementation Flow
+
+<Steps>
+### Initialize the Provider
+Use the `FromEnv` factory to automatically validate your Client ID and Secret.
+
+```typescript
+import { createGoogleSSOFromEnv } from '@aptly/services/sso';
+
+const google = createGoogleSSOFromEnv();
+```
+
+### Redirect the User
+Generate a signed authorization URL and redirect your user to the provider's login screen.
+
+```typescript
+// For a Next.js API route or Express handler
+const redirectUri = 'https://app.com/api/auth/callback/google';
+const loginUrl = google.getAuthUrl(redirectUri);
+```
+
+### Handle the Callback
+In your callback route, capture the `code` query parameter and verify it.
+
+```typescript
+const { code } = req.query;
+const result = await google.verifyCallback(code, redirectUri);
+
+// Result contains: email, name, picture, and unique provider 'sub'
+console.log(`Hello, ${result.name}!`);
+```
+</Steps>
+
+## Supported Providers
+
+<Tabs items={['Google', 'Microsoft', 'Zoho']}>
+  <Tabs.Tab>
+    **Enviroment Variables:**
+    - `GOOGLE_CLIENT_ID`
+    - `GOOGLE_CLIENT_SECRET`
+
+    **Standard Scopes:**
+    - `openid`, `email`, `profile`
+  </Tabs.Tab>
+  <Tabs.Tab>
+    **Enviroment Variables:**
+    - `MICROSOFT_CLIENT_ID`
+    - `MICROSOFT_CLIENT_SECRET`
+    - `MICROSOFT_TENANT_ID` (Default: `common`)
+
+    **Standard Scopes:**
+    - `openid`, `email`, `profile`, `User.Read`
+  </Tabs.Tab>
+  <Tabs.Tab>
+    **Enviroment Variables:**
+    - `ZOHO_CLIENT_ID`
+    - `ZOHO_CLIENT_SECRET`
+    - `ZOHO_REGION` (Default: `com`, supports `in`, `eu`, `com.au`)
+
+    **Note:** Zoho uses a slightly different profile scope (`AaaServer.profile.Read`).
+  </Tabs.Tab>
+</Tabs>
+
+## Best Practices
+
+<Callout type="info" emoji="💡">
+  **Security**: Always issue your own application-specific JWT session (using our **Auth Service**) after a successful SSO login. Never use the provider's access token as your app's main session token.
+</Callout>
+
+- **State Management**: It is highly recommended to use the `state` parameter in OAuth flows to prevent CSRF attacks.
+- **Environment Safety**: Never hardcode Client Secrets. Use the `create*FromEnv` factories to ensure they are securely pulled from your deployment environment.

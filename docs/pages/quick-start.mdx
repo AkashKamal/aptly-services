@@ -1,0 +1,42 @@
+# Quick Start
+
+Get up and running with `@aptly/services` in less than 2 minutes.
+
+## Installation
+
+Install the library using your preferred package manager:
+
+```bash
+npm install @aptly/services
+# or
+yarn add @aptly/services
+# or
+pnpm add @aptly/services
+```
+
+## Basic Usage
+
+The library is designed for modular imports. You should only import the services you actually use.
+
+```typescript
+import { createAuthFromEnv } from '@aptly/services/auth';
+import { createEmailClientFromEnv } from '@aptly/services/email';
+
+// 1. Initialize with environment variable validation
+const auth = createAuthFromEnv();
+const email = createEmailClientFromEnv();
+
+// 2. Use the service
+const token = auth.generateToken({ id: 'user_1' });
+await email.send({
+  to: 'user@example.com',
+  subject: 'Login Notification',
+  text: 'You just logged in!'
+});
+```
+
+## Next Steps
+
+- Explore the [Core Principles](/principles) behind the library.
+- Deep dive into specific [Services](/services/auth).
+- Set up social login with the [SSO Guide](/sso).

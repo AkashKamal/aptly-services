@@ -1,0 +1,49 @@
+# WhatsApp Service
+
+Meta Cloud API wrapper for automated business notifications.
+
+## Configuration
+
+Required environment variables:
+- `WHATSAPP_TOKEN`: Permanent Access Token from Meta Developer Console.
+- `WHATSAPP_PHONE_ID`: The ID of your verified business phone number.
+
+## Usage
+
+### Simple Template Message
+
+```typescript
+import { createWhatsAppClientFromEnv } from '@aptly/services/whatsapp';
+
+const wa = createWhatsAppClientFromEnv();
+await wa.sendTemplateMessage({
+  to: '919876543210',
+  template: 'welcome_customer',
+  language: 'en'
+});
+```
+
+### Complex Components (Buttons/Variables)
+
+```typescript
+await wa.sendTemplateMessage({
+  to: '919876543210',
+  template: 'order_update',
+  components: [
+    {
+      type: 'body',
+      parameters: [{ type: 'text', text: 'Order #456' }]
+    },
+    {
+      type: 'button',
+      sub_type: 'url',
+      index: 0,
+      parameters: [{ type: 'text', text: 'orders/456' }]
+    }
+  ]
+});
+```
+
+## AI Agent Integration
+
+When choosing templates, ensure they are pre-approved in the Meta Developer Console. The library will throw an error if you attempt to use an unapproved template name.

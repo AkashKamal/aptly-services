@@ -1,0 +1,42 @@
+# Payment Service
+
+Standardized integration for **Razorpay**, optimized for Indian MSME payment processing.
+
+## Configuration
+
+Required environment variables:
+- `RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_SECRET`
+
+## Usage
+
+### Create an Order
+
+```typescript
+import { createPaymentClientFromEnv } from '@aptly/services/payment';
+
+const payments = createPaymentClientFromEnv();
+
+// Amount is in the smallest currency unit (paise for INR).
+// ₹500.00 = 50000 paise
+const order = await payments.createOrder(50000, 'INR', 'receipt_001');
+
+console.log(order.id); // 'order_LAx...'
+```
+
+### Webhook Verification
+
+Verify that an incoming webhook actually came from Razorpay.
+
+```typescript
+const isValid = payments.verifyWebhookSignature(
+  req.rawBody, 
+  req.headers['x-razorpay-signature'], 
+  process.env.RAZORPAY_WEBHOOK_SECRET
+);
+```
+
+## Best Practices
+
+- **Receipt IDs**: Always provide a unique receipt ID from your internal database to match orders later.
+- **Rounding**: Be careful with floating point math. Always calculate your paise/cents using integers to avoid rounding errors.

@@ -1,0 +1,25 @@
+# Core Principles
+
+The development of `@aptly/services` is guided by four main pillars to ensure reliability and performance in production.
+
+## 1. Lightweight & Minimal
+We strictly avoid heavy dependencies. For example, our **PDF Service** uses native drawing rather than Chromium (Puppeteer), saving significant memory and CPU overhead. This makes the library ideal for serverless functions and budget-conscious cloud hosting.
+
+## 2. Strictly Validated (Fail-Fast)
+Every service uses **Zod** for environment configuration. 
+- Secrets and API keys are validated on initialization.
+- If a required variable (like `JWT_SECRET`) is missing or malformed, the application crashes immediately on boot with a clear error message.
+- This prevents "heisenbugs" where a service fails silently deep in a production run.
+
+## 3. Modular by Design
+The library is optimized for "tree-shaking" and selective loading. 
+```typescript
+// ✅ Good: Only loads the Auth-specific dependencies
+import { createAuthFromEnv } from '@aptly/services/auth';
+
+// ❌ Avoid: Pulls in the entire library including S3 and Razorpay SDKs
+import { createAuthFromEnv } from '@aptly/services';
+```
+
+## 4. Production-Ready Factories
+We provide `*FromEnv()` helpers for every service. These helpers are specifically optimized for **Coolify** and **Vercel** deployments, where environment variables are the standard way to inject configuration at runtime.

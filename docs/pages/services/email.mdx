@@ -1,0 +1,63 @@
+import { Callout } from 'nextra/components'
+
+# Email Service
+
+A wrapper around `nodemailer` with built-in support for simple HTML templates and attachments.
+
+## Configuration
+
+Required environment variables:
+- `SMTP_HOST`: e.g., `smtp.gmail.com`
+- `SMTP_PORT`: e.g., `587`
+- `SMTP_USER`: Your username
+- `SMTP_PASS`: Your password/app-secret
+- `SMTP_FROM`: Valid sender email
+
+## Usage
+
+### Simple Email
+
+```typescript
+import { createEmailClientFromEnv } from '@aptly/services/email';
+
+const email = createEmailClientFromEnv();
+await email.send({
+  to: 'client@example.com',
+  subject: 'Hello',
+  text: 'This is a test email'
+});
+```
+
+### Invoices & Attachments
+
+The service supports `Buffer` or `Base64` content for attachments.
+
+```typescript
+await email.send({
+  to: 'client@example.com',
+  subject: 'Your Invoice',
+  text: 'Attached is your monthly invoice.',
+  attachments: [
+    { filename: 'invoice.pdf', content: pdfBuffer }
+  ]
+});
+```
+
+### Templates
+
+Standard templates are built-in for common Aptly platform notifications.
+
+```typescript
+await email.send({
+  to: 'client@example.com',
+  subject: 'Welcome!',
+  template: 'welcome',
+  data: { name: 'Akash' }
+});
+```
+
+## Best Practices
+
+<Callout type="warning">
+  **Attachments**: Avoid sending attachments larger than 10MB via standard SMTP providers as they are often rejected by the recipient's mail server. For larger files, use the **Storage Service** to generate a download link instead.
+</Callout>

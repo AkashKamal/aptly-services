@@ -1,0 +1,40 @@
+import { Callout } from 'nextra/components'
+
+# Cron Scheduler
+
+Lightweight, in-memory task scheduling wrapping `node-cron`.
+
+## Usage
+
+### Simple Schedule
+
+```typescript
+import { cronService } from '@aptly/services/cron';
+
+// Run every day at 8 AM
+cronService.scheduleTask('0 8 * * *', async () => {
+  console.log('Running daily aggregation...');
+});
+```
+
+### Named Tasks & Stopping
+
+You can name tasks to stop them later without keeping a reference to the job object.
+
+```typescript
+cronService.scheduleTask('*/5 * * * *', async () => {
+  // Check inventory
+}, 'inventory_check');
+
+// Later...
+cronService.stopTask('inventory_check');
+```
+
+## Best Practices
+
+<Callout type="error" emoji="🚨">
+  **Horizontal Scaling**: This service is in-memory. If you run 3 containers of your app, you will have 3 independent crons running. Ensure only ONE "Worker" instance of your app is configured to run cron tasks.
+</Callout>
+
+- **Error Handling**: The service automatically catches and logs errors within your task function, preventing a single failed task from crashing your entire Node.js process.
+- **Async Safety**: Always await your async operations within the task function to ensure the job doesn't overlapping or finish prematurely.
