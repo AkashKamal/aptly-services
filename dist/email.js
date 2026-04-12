@@ -65,7 +65,8 @@ function createEmailClient(config) {
         to: options.to,
         subject: options.subject,
         text: options.text,
-        html: htmlContent
+        html: htmlContent,
+        attachments: options.attachments
       });
       return info.messageId;
     }

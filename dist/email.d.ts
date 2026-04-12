@@ -26,6 +26,11 @@ interface EmailOptions {
     html?: string;
     template?: 'welcome' | 'alert' | 'invoice';
     data?: Record<string, any>;
+    attachments?: Array<{
+        filename: string;
+        content: string | Buffer;
+        contentType?: string;
+    }>;
 }
 declare function createEmailClient(config: EmailConfig): {
     send(options: EmailOptions): Promise<string>;

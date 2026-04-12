@@ -35,13 +35,16 @@ __export(pdf_exports, {
 });
 module.exports = __toCommonJS(pdf_exports);
 var pdfmakeImport = __toESM(require("pdfmake"));
+var import_path = __toESM(require("path"));
 var pdfmake = pdfmakeImport.default || pdfmakeImport;
+var pdfKitPath = import_path.default.dirname(require.resolve("pdfkit/package.json"));
+var fontsDir = import_path.default.join(pdfKitPath, "js/data");
 var fonts = {
   Helvetica: {
-    normal: "Helvetica",
-    bold: "Helvetica-Bold",
-    italics: "Helvetica-Oblique",
-    bolditalics: "Helvetica-BoldOblique"
+    normal: import_path.default.join(fontsDir, "Helvetica.afm"),
+    bold: import_path.default.join(fontsDir, "Helvetica-Bold.afm"),
+    italics: import_path.default.join(fontsDir, "Helvetica-Oblique.afm"),
+    bolditalics: import_path.default.join(fontsDir, "Helvetica-BoldOblique.afm")
   }
 };
 var PDFService = class {

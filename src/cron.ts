@@ -1,4 +1,4 @@
-import cron from 'node-cron';
+import cron, { ScheduledTask } from 'node-cron';
 
 /**
  * A lightweight task scheduling service wrapping node-cron.
@@ -6,7 +6,7 @@ import cron from 'node-cron';
  * In an isolated Coolify architecture, ensure only ONE container (or worker) is running these crons,
  * to avoid duplicate executions.
  */
-const taskRegistry = new Map<string, cron.ScheduledTask>();
+const taskRegistry = new Map<string, ScheduledTask>();
 
 export const cronService = {
   /**

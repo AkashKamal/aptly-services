@@ -32,14 +32,20 @@ var src_exports = {};
 __export(src_exports, {
   AuthEnvSchema: () => AuthEnvSchema,
   EmailEnvSchema: () => EmailEnvSchema,
+  FixedWindowStrategy: () => FixedWindowStrategy,
   GoogleEnvSchema: () => GoogleEnvSchema,
+  InMemoryStore: () => InMemoryStore,
   MicrosoftEnvSchema: () => MicrosoftEnvSchema,
+  OTPService: () => OTPService,
   PDFService: () => PDFService,
   PaymentEnvSchema: () => PaymentEnvSchema,
+  RateLimiter: () => RateLimiter,
   SSOEnvSchema: () => SSOEnvSchema,
   StorageEnvSchema: () => StorageEnvSchema,
+  TokenBucketStrategy: () => TokenBucketStrategy,
   WhatsAppEnvSchema: () => WhatsAppEnvSchema,
   ZohoEnvSchema: () => ZohoEnvSchema,
+  barcodeService: () => barcodeService,
   createAuth: () => createAuth,
   createAuthFromEnv: () => createAuthFromEnv,
   createEmailClient: () => createEmailClient,
@@ -128,7 +134,8 @@ function createEmailClient(config) {
         to: options.to,
         subject: options.subject,
         text: options.text,
-        html: htmlContent
+        html: htmlContent,
+        attachments: options.attachments
       });
       return info.messageId;
     }
@@ -150,13 +157,16 @@ function createEmailClientFromEnv(env = process.env) {
 
 // src/pdf.ts
 var pdfmakeImport = __toESM(require("pdfmake"));
+var import_path = __toESM(require("path"));
 var pdfmake = pdfmakeImport.default || pdfmakeImport;
+var pdfKitPath = import_path.default.dirname(require.resolve("pdfkit/package.json"));
+var fontsDir = import_path.default.join(pdfKitPath, "js/data");
 var fonts = {
   Helvetica: {
-    normal: "Helvetica",
-    bold: "Helvetica-Bold",
-    italics: "Helvetica-Oblique",
-    bolditalics: "Helvetica-BoldOblique"
+    normal: import_path.default.join(fontsDir, "Helvetica.afm"),
+    bold: import_path.default.join(fontsDir, "Helvetica-Bold.afm"),
+    italics: import_path.default.join(fontsDir, "Helvetica-Oblique.afm"),
+    bolditalics: import_path.default.join(fontsDir, "Helvetica-BoldOblique.afm")
   }
 };
 var PDFService = class {
@@ -380,15 +390,18 @@ function createPaymentClientFromEnv(env = process.env) {
 
 // src/cron.ts
 var import_node_cron = __toESM(require("node-cron"));
+var taskRegistry = /* @__PURE__ */ new Map();
 var cronService = {
   /**
    * Schedule a task based on standard Cron expressions.
    * Format `* * * * *` (minute, hour, day of month, month, day of week)
-   * Example: `0 8 * * *` = Run every day at 8:00 AM
    * 
-   * @returns A Task object that can be `.stop()`ped later if needed.
+   * @param cronExpression Standard cron string
+   * @param taskFunction Async function to execute
+   * @param name Optional unique name for the task (allows stopping it later)
+   * @returns The node-cron job object
    */
-  scheduleTask(cronExpression, taskFunction) {
+  scheduleTask(cronExpression, taskFunction, name) {
     const valid = import_node_cron.default.validate(cronExpression);
     if (!valid) {
       throw new Error(`Invalid cron expression provided: ${cronExpression}`);
@@ -400,7 +413,21 @@ var cronService = {
         console.error(`Error executing cron task [${cronExpression}]:`, e);
       }
     });
+    if (name) {
+      taskRegistry.set(name, scheduledJob);
+    }
     return scheduledJob;
+  },
+  /**
+   * Stop and remove a named task.
+   */
+  stopTask(name) {
+    const task = taskRegistry.get(name);
+    if (!task) {
+      throw new Error(`Cron task [${name}] not found`);
+    }
+    task.stop();
+    taskRegistry.delete(name);
   }
 };
 
@@ -608,18 +635,201 @@ function createZohoSSOFromEnv(env = process.env) {
     region: parsed.ZOHO_REGION
   });
 }
+
+// src/rate-limit/strategies/fixed-window.ts
+var FixedWindowStrategy = class {
+  async isAllowed(store, key, options) {
+    const count = await store.increment(key, options.window);
+    const ttl = await store.getTTL(key);
+    const allowed = count <= options.limit;
+    return {
+      allowed,
+      remaining: Math.max(0, options.limit - count),
+      reset: Math.floor(Date.now() / 1e3) + ttl
+    };
+  }
+};
+
+// src/rate-limit/stores/in-memory.ts
+var InMemoryStore = class {
+  constructor() {
+    this.cache = /* @__PURE__ */ new Map();
+  }
+  async increment(key, expirySeconds) {
+    const now = Date.now();
+    const entry = this.cache.get(key);
+    if (entry && entry.expiry > now) {
+      entry.count += 1;
+      return entry.count;
+    }
+    const newEntry = {
+      count: 1,
+      expiry: now + expirySeconds * 1e3
+    };
+    this.cache.set(key, newEntry);
+    if (this.cache.size > 1e3) {
+      this.cleanup();
+    }
+    return 1;
+  }
+  async decrement(key) {
+    const entry = this.cache.get(key);
+    if (entry && entry.count > 0) {
+      entry.count -= 1;
+    }
+  }
+  async get(key) {
+    const entry = this.cache.get(key);
+    if (entry && entry.expiry > Date.now()) {
+      return entry.count;
+    }
+    return null;
+  }
+  async getTTL(key) {
+    const entry = this.cache.get(key);
+    if (entry) {
+      const ttl = Math.max(0, entry.expiry - Date.now());
+      return Math.floor(ttl / 1e3);
+    }
+    return 0;
+  }
+  cleanup() {
+    const now = Date.now();
+    for (const [key, entry] of this.cache.entries()) {
+      if (entry.expiry <= now) {
+        this.cache.delete(key);
+      }
+    }
+  }
+};
+
+// src/rate-limit/strategies/token-bucket.ts
+var TokenBucketStrategy = class {
+  async isAllowed(store, key, options) {
+    const now = Math.floor(Date.now() / 1e3);
+    const lastRefillKey = `${key}:last_refill`;
+    const lastRefill = await store.get(lastRefillKey) || now;
+    const currentTokens = await store.get(key);
+    if (currentTokens === null) {
+      await store.increment(key, options.window);
+    }
+    const tokensToRefill = Math.floor((now - lastRefill) * (options.limit / options.window));
+    const count = await store.increment(key, options.window);
+    const allowed = count <= options.limit;
+    return {
+      allowed,
+      remaining: Math.max(0, options.limit - count),
+      reset: now + await store.getTTL(key)
+    };
+  }
+};
+
+// src/rate-limit/index.ts
+var RateLimiter = class {
+  constructor(strategy = new FixedWindowStrategy(), store = new InMemoryStore()) {
+    this.strategy = strategy;
+    this.store = store;
+  }
+  /**
+   * Check if the request is allowed for the given key.
+   * 
+   * @param key Unique identifier (IP, User ID, etc.)
+   * @param options limit and window configuration
+   */
+  async check(key, options) {
+    return this.strategy.isAllowed(this.store, key, options);
+  }
+};
+
+// src/otp/index.ts
+var import_crypto2 = __toESM(require("crypto"));
+var OTPService = class {
+  constructor(store = new InMemoryStore()) {
+    this.store = store;
+  }
+  /**
+   * Generates and stores a new OTP for a given identifier.
+   */
+  async generate(identifier, options = {}) {
+    const { length = 6, type = "numeric", expiresIn = 300 } = options;
+    let otp = "";
+    if (type === "numeric") {
+      otp = import_crypto2.default.randomInt(0, Math.pow(10, length)).toString().padStart(length, "0");
+    } else {
+      otp = import_crypto2.default.randomBytes(length).toString("hex").slice(0, length).toUpperCase();
+    }
+    const key = `otp:${identifier}`;
+    await this.store.increment(`${key}:${otp}`, expiresIn);
+    return otp;
+  }
+  /**
+   * Verifies if the provided OTP is valid for the identifier.
+   */
+  async verify(identifier, otp) {
+    const key = `otp:${identifier}:${otp}`;
+    const entry = await this.store.get(key);
+    if (entry && entry > 0) {
+      return true;
+    }
+    return false;
+  }
+};
+
+// src/barcode/index.ts
+var import_jsbarcode = __toESM(require("jsbarcode"));
+var import_xmldom = require("xmldom");
+var barcodeService = {
+  /**
+   * Generates a barcode as an SVG string.
+   * Pure JS implementation with no canvas or DOM dependencies.
+   */
+  generateSVG(text, options = {}) {
+    const {
+      format = "CODE128",
+      width = 2,
+      height = 100,
+      displayValue = true,
+      fontSize = 20,
+      margin = 10,
+      lineColor = "#000"
+    } = options;
+    const document = new import_xmldom.DOMImplementation().createDocument(
+      "http://www.w3.org/1999/xhtml",
+      "html",
+      null
+    );
+    const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    (0, import_jsbarcode.default)(svgNode, text, {
+      xmlDocument: document,
+      format,
+      width,
+      height,
+      displayValue,
+      fontSize,
+      margin,
+      lineColor
+    });
+    return new import_xmldom.XMLSerializer().serializeToString(svgNode);
+  }
+};
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   AuthEnvSchema,
   EmailEnvSchema,
+  FixedWindowStrategy,
   GoogleEnvSchema,
+  InMemoryStore,
   MicrosoftEnvSchema,
+  OTPService,
   PDFService,
   PaymentEnvSchema,
+  RateLimiter,
   SSOEnvSchema,
   StorageEnvSchema,
+  TokenBucketStrategy,
   WhatsAppEnvSchema,
   ZohoEnvSchema,
+  barcodeService,
   createAuth,
   createAuthFromEnv,
   createEmailClient,
