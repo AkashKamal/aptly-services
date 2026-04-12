@@ -157,17 +157,26 @@ function createEmailClientFromEnv(env = process.env) {
 
 // src/pdf.ts
 var pdfmakeImport = __toESM(require("pdfmake"));
+var vfsFontsImport = __toESM(require("pdfmake/build/vfs_fonts"));
 var pdfmake = pdfmakeImport.default || pdfmakeImport;
+var vfsFonts = vfsFontsImport.pdfMake?.vfs || vfsFontsImport.default || vfsFontsImport;
 var fonts = {
-  Helvetica: {
-    normal: "Helvetica",
-    bold: "Helvetica-Bold",
-    italics: "Helvetica-Oblique",
-    bolditalics: "Helvetica-BoldOblique"
+  Roboto: {
+    normal: "Roboto-Regular.ttf",
+    bold: "Roboto-Medium.ttf",
+    italics: "Roboto-Italic.ttf",
+    bolditalics: "Roboto-MediumItalic.ttf"
   }
 };
 var PDFService = class {
   constructor() {
+    if (vfsFonts && typeof vfsFonts === "object" && pdfmake.virtualfs) {
+      for (const key of Object.keys(vfsFonts)) {
+        if (typeof vfsFonts[key] === "string") {
+          pdfmake.virtualfs.writeFileSync(key, Buffer.from(vfsFonts[key], "base64"));
+        }
+      }
+    }
     pdfmake.setFonts(fonts);
   }
   /**
@@ -178,7 +187,7 @@ var PDFService = class {
       const def = {
         ...docDefinition,
         defaultStyle: {
-          font: "Helvetica",
+          font: "Roboto",
           ...docDefinition.defaultStyle
         }
       };
