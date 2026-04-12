@@ -34,7 +34,15 @@ describe('Storage Module', () => {
   it('should generate pre-signed download URL', async () => {
     const url = await storage.getDownloadUrl('test-file.pdf');
     expect(url).toBe('https://signed-url.com');
-    expect(s3_presigner.getSignedUrl).toHaveBeenCalled();
+  });
+
+  it('should support custom expiration for download URLs', async () => {
+    await storage.getDownloadUrl('test-file.pdf', 3600);
+    expect(s3_presigner.getSignedUrl).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.any(Object),
+      expect.objectContaining({ expiresIn: 3600 })
+    );
   });
 
   it('should validate environment variables with createStorageClientFromEnv', () => {

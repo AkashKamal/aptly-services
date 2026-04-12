@@ -30,6 +30,11 @@ export interface EmailOptions {
   html?: string;
   template?: 'welcome' | 'alert' | 'invoice';
   data?: Record<string, any>;
+  attachments?: Array<{
+    filename: string;
+    content: string | Buffer;
+    contentType?: string;
+  }>;
 }
 
 export function createEmailClient(config: EmailConfig) {
@@ -57,6 +62,7 @@ export function createEmailClient(config: EmailConfig) {
         subject: options.subject,
         text: options.text,
         html: htmlContent,
+        attachments: options.attachments,
       });
 
       return info.messageId;

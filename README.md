@@ -2,14 +2,18 @@
 
 > **For AI Agents:** This is the backend service library for the Aptly modular platform. Import services from `@aptly/services` or use sub-path imports for individual modules. Every service uses Zod-validated environment variables — never hardcode secrets.
 
+## Core Principles
+
+1.  **Lightweight & Minimal**: We strictly avoid heavy dependencies (like Puppeteer/Chromium). The library is designed to run in constrained environments with minimal memory footprint.
+2.  **Strictly Validated**: Every service uses **Zod** for environment configuration. Secrets and API keys are validated on initialization—failing fast and loud if configuration is missing.
+3.  **Modular by Design**: Use sub-path imports (e.g., `@aptly/services/auth`) to pull in only what you need. This keeps your production bundles small and prevents unused dependencies from being loaded.
+4.  **Production-Ready Factories**: All services provide `*FromEnv()` helpers that safely bridge your environment variables to the service instances.
+
 ## Installation
 
 ```bash
-# From GitHub (recommended for Aptly projects)
+# Recommended for Aptly platform projects
 npm install github:AptlyOrg/aptly-services
-
-# If you need PDF generation (adds ~200MB puppeteer)
-npm install puppeteer
 ```
 
 ## Quick Start
@@ -40,7 +44,7 @@ import { cronService } from '@aptly/services/cron';
 1. **NEVER hardcode API keys or secrets.** All services pull config from `process.env` via Zod schemas. The Coolify deployment engine injects variables at runtime.
 2. **Use the `*FromEnv()` factory functions.** They validate environment variables instantly on boot — if a variable is missing, the app crashes with a clear Zod error instead of silently failing later.
 3. **Use sub-path imports when possible.** `import { createAuthFromEnv } from '@aptly/services/auth'` is better than importing from the barrel — it avoids loading unused modules (especially puppeteer).
-4. **PDF service requires puppeteer.** It is an optional dependency. Only install it if the client needs PDF generation. Call `pdfService.init()` once on app startup.
+4. **PDF service is lightweight.** It uses `pdfmake` to generate PDFs natively in Node.js without needing a headless browser (no Puppeteer/Chromium required).
 
 ### Module Reference
 
@@ -64,7 +68,7 @@ const decoded = auth.verifyToken<{ userId: number; role: string }>(token);
 ---
 
 #### Email (`@aptly/services/email`)
-Nodemailer-based email sending with template support.
+Nodemailer-based email sending with template support. Ideal for sending OTPs, welcome emails, or automated invoices.
 
 **Required env vars:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (valid email)
 **Optional env vars:** `SMTP_SECURE` (`"true"` or `"false"`)
@@ -73,43 +77,53 @@ Nodemailer-based email sending with template support.
 import { createEmailClientFromEnv } from '@aptly/services/email';
 
 const email = createEmailClientFromEnv();
+
+// Example: Sending a Welcome Email
 await email.send({
   to: 'client@example.com',
-  subject: 'Your Invoice',
-  template: 'welcome',       // 'welcome' | 'alert' | 'invoice'
-  data: { name: 'John' }
+  subject: 'Welcome to Aptly',
+  template: 'welcome',
+  data: { name: 'John Doe' }
 });
-// Or send raw HTML:
+
+// Example: Sending with an attachment (Invoices, Reports)
 await email.send({
   to: 'client@example.com',
-  subject: 'Custom Email',
-  html: '<h1>Hello World</h1>'
+  subject: 'Your Monthly Invoice',
+  text: 'Please find your invoice attached.',
+  attachments: [{ filename: 'invoice.pdf', content: pdfBuffer }]
 });
 ```
-
-**Exported types:** `EmailConfig`, `EmailOptions`, `EmailEnvConfig`, `EmailEnvSchema`
 
 ---
 
 #### PDF (`@aptly/services/pdf`)
-Queue-isolated headless browser PDF generation. Uses a single persistent Chromium instance to prevent OOM on DigitalOcean droplets.
-
-**Prerequisites:** `npm install puppeteer`
+Lightweight, server-side PDF generation using `pdfmake`. No headless browser required, making it extremely memory-efficient for serverless environments.
 
 ```typescript
 import { pdfService } from '@aptly/services/pdf';
 
-// Call once on app startup
-await pdfService.init();
+// Generate complex documents with tables and styles
+const docDefinition = {
+  content: [
+    { text: 'Sales Report', style: 'header' },
+    {
+      table: {
+        body: [
+          ['Item', 'Qty', 'Price'],
+          ['Widget A', 22, '₹4,400'],
+          ['Widget B', 5, '₹1,500']
+        ]
+      }
+    }
+  ],
+  styles: { header: { fontSize: 22, bold: true, margin: [0, 0, 0, 10] } }
+};
 
-// Generate PDFs from HTML strings
-const buffer = await pdfService.generateFromHtml('<h1>Invoice #123</h1><p>Total: ₹5,000</p>');
-
-// On app shutdown
-await pdfService.close();
+const pdfBuffer = await pdfService.generateDocument(docDefinition);
 ```
 
-> ⚠️ **Do NOT write raw puppeteer logic in API routes.** Always use `pdfService` — it queues requests to prevent memory spikes.
+> 💡 **Tip:** Use the [pdfmake playground](http://pdfmake.org/playground.html) to design your templates and copy the resulting JSON definition directly into your code.
 
 **Exported types:** `PDFService`
 
@@ -208,6 +222,35 @@ cronService.scheduleTask('0 8 * * *', async () => {
 
 ---
 
+#### SSO Providers (`@aptly/services/sso`)
+
+Zero-dependency SSO integration for Google, Microsoft, and Zoho. All providers follow a unified interface.
+
+**Required env vars:**
+- **Google**: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+- **Microsoft**: `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT_ID` (optional)
+- **Zoho**: `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REGION` (optional, default: `com`)
+
+```typescript
+import { createGoogleSSOFromEnv, createMicrosoftSSOFromEnv, createZohoSSOFromEnv } from '@aptly/services/sso';
+
+// 1. Initialize
+const google = createGoogleSSOFromEnv();
+
+// 2. Generate redirect URL for your "Login" button
+const loginUrl = google.getAuthUrl('https://app.com/api/auth/callback/google');
+
+// 3. Handle callback and verify code
+const result = await google.verifyCallback(code, 'https://app.com/api/auth/callback/google');
+
+console.log(result.email); // 'user@gmail.com'
+console.log(result.sub);   // Unique provider ID
+```
+
+**Exported types:** `SSOService`, `SSOLoginResult`, `GoogleEnvConfig`, `MicrosoftEnvConfig`, `ZohoEnvConfig`
+
+---
+
 ### Environment Variable Summary
 
 | Module | Required Variables | Optional |
@@ -217,7 +260,7 @@ cronService.scheduleTask('0 8 * * *', async () => {
 | storage | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` | — |
 | payment | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | — |
 | whatsapp | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` | — |
-| pdf | *(none, but requires `puppeteer` installed)* | — |
+| pdf | *(none)* | — |
 | qr | *(none)* | — |
 | cron | *(none)* | — |
 
@@ -235,8 +278,26 @@ export async function POST(req: Request) {
   const isValid = await auth.verifyPassword(password, user.passwordHash);
   if (!isValid) return Response.json({ error: 'Invalid credentials' }, { status: 401 });
   const token = auth.generateToken({ userId: user.id, role: user.role });
-  return Response.json({ token });
-}
-```
+---
+
+## Troubleshooting
+
+### Common Issues
+
+1.  **Missing Environment Variables**: All services use strict Zod validation. If you see a `ZodError` during initialization, check that your `.env` file (or provider settings) matches the required keys in the **Environment Variable Summary** table.
+2.  **PDF Font Errors**: The PDF service defaults to `Helvetica` to avoid needing local font files. If you use custom fonts, ensure they are registered in the document definition.
+3.  **Storage Access Denied**: Double-check your S3 credentials and ensure the bucket name is correct. Pre-signed URLs will successfully generate even if credentials are wrong, but will fail when used in the browser.
+4.  **WhatsApp API Error 401**: Ensure your `WHATSAPP_TOKEN` is a Permanent Access Token. Temporary tokens expire after 24 hours.
+
+## Contributing
+
+We welcome contributions! To add a new service:
+
+1.  Create a new file in `src/` (e.g., `src/my-service.ts`).
+2.  Follow the factory pattern: export a `createMyService` and `createMyServiceFromEnv`.
+3.  Add Zod validation for any new environment variables.
+4.  Add a comprehensive unit test in `src/my-service.test.ts`.
+5.  Export your service from `src/index.ts`.
+6.  Run `npm test` and `npm run build` before submitting a PR.
 
 </for_ai_agents>

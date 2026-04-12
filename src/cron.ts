@@ -6,21 +6,28 @@ import cron from 'node-cron';
  * In an isolated Coolify architecture, ensure only ONE container (or worker) is running these crons,
  * to avoid duplicate executions.
  */
+const taskRegistry = new Map<string, cron.ScheduledTask>();
+
 export const cronService = {
   /**
    * Schedule a task based on standard Cron expressions.
    * Format `* * * * *` (minute, hour, day of month, month, day of week)
-   * Example: `0 8 * * *` = Run every day at 8:00 AM
    * 
-   * @returns A Task object that can be `.stop()`ped later if needed.
+   * @param cronExpression Standard cron string
+   * @param taskFunction Async function to execute
+   * @param name Optional unique name for the task (allows stopping it later)
+   * @returns The node-cron job object
    */
-  scheduleTask(cronExpression: string, taskFunction: () => void | Promise<void>) {
+  scheduleTask(
+    cronExpression: string, 
+    taskFunction: () => void | Promise<void>,
+    name?: string
+  ) {
     const valid = cron.validate(cronExpression);
     if (!valid) {
       throw new Error(`Invalid cron expression provided: ${cronExpression}`);
     }
 
-    // Schedule the async task and catch top level errors to prevent crashing the container
     const scheduledJob = cron.schedule(cronExpression, async () => {
       try {
         await taskFunction();
@@ -29,6 +36,22 @@ export const cronService = {
       }
     });
 
+    if (name) {
+      taskRegistry.set(name, scheduledJob);
+    }
+
     return scheduledJob;
+  },
+
+  /**
+   * Stop and remove a named task.
+   */
+  stopTask(name: string) {
+    const task = taskRegistry.get(name);
+    if (!task) {
+      throw new Error(`Cron task [${name}] not found`);
+    }
+    task.stop();
+    taskRegistry.delete(name);
   }
 };

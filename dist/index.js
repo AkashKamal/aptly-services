@@ -32,20 +32,30 @@ var src_exports = {};
 __export(src_exports, {
   AuthEnvSchema: () => AuthEnvSchema,
   EmailEnvSchema: () => EmailEnvSchema,
+  GoogleEnvSchema: () => GoogleEnvSchema,
+  MicrosoftEnvSchema: () => MicrosoftEnvSchema,
   PDFService: () => PDFService,
   PaymentEnvSchema: () => PaymentEnvSchema,
+  SSOEnvSchema: () => SSOEnvSchema,
   StorageEnvSchema: () => StorageEnvSchema,
   WhatsAppEnvSchema: () => WhatsAppEnvSchema,
+  ZohoEnvSchema: () => ZohoEnvSchema,
   createAuth: () => createAuth,
   createAuthFromEnv: () => createAuthFromEnv,
   createEmailClient: () => createEmailClient,
   createEmailClientFromEnv: () => createEmailClientFromEnv,
+  createGoogleSSO: () => createGoogleSSO,
+  createGoogleSSOFromEnv: () => createGoogleSSOFromEnv,
+  createMicrosoftSSO: () => createMicrosoftSSO,
+  createMicrosoftSSOFromEnv: () => createMicrosoftSSOFromEnv,
   createPaymentClient: () => createPaymentClient,
   createPaymentClientFromEnv: () => createPaymentClientFromEnv,
   createStorageClient: () => createStorageClient,
   createStorageClientFromEnv: () => createStorageClientFromEnv,
   createWhatsAppClient: () => createWhatsAppClient,
   createWhatsAppClientFromEnv: () => createWhatsAppClientFromEnv,
+  createZohoSSO: () => createZohoSSO,
+  createZohoSSOFromEnv: () => createZohoSSOFromEnv,
   cronService: () => cronService,
   pdfService: () => pdfService,
   qrService: () => qrService
@@ -139,100 +149,43 @@ function createEmailClientFromEnv(env = process.env) {
 }
 
 // src/pdf.ts
-var puppeteer = null;
-async function loadPuppeteer() {
-  if (puppeteer) return puppeteer;
-  try {
-    puppeteer = await import("puppeteer");
-    return puppeteer;
-  } catch {
-    throw new Error(
-      '[@aptly/services] PDF generation requires "puppeteer" to be installed.\nInstall it with: npm install puppeteer\nIt is listed as an optional dependency and is only needed if you use pdfService.'
-    );
+var pdfmakeImport = __toESM(require("pdfmake"));
+var pdfmake = pdfmakeImport.default || pdfmakeImport;
+var fonts = {
+  Helvetica: {
+    normal: "Helvetica",
+    bold: "Helvetica-Bold",
+    italics: "Helvetica-Oblique",
+    bolditalics: "Helvetica-BoldOblique"
   }
-}
+};
 var PDFService = class {
   constructor() {
-    this.browser = null;
-    this.isGenerating = false;
-    this.queue = [];
+    pdfmake.setFonts(fonts);
   }
   /**
-   * Initialize the headless browser. 
-   * This should be called once on application startup.
-   * Throws a clear error if puppeteer is not installed.
+   * Generates a PDF from a pdfmake document definition.
    */
-  async init() {
-    if (!this.browser) {
-      const pptr = await loadPuppeteer();
-      this.browser = await pptr.default.launch({
-        headless: true,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          // critical for Docker memory environments like Coolify
-          "--disable-gpu"
-        ]
-      });
+  async generateDocument(docDefinition) {
+    try {
+      const def = {
+        ...docDefinition,
+        defaultStyle: {
+          font: "Helvetica",
+          ...docDefinition.defaultStyle
+        }
+      };
+      const pdfDoc = pdfmake.createPdf(def);
+      return await pdfDoc.getBuffer();
+    } catch (error) {
+      console.error("[@aptly/services] PDF Generation Error:", error);
+      throw error;
     }
   }
   /**
-   * Process the internal queue to ensure we don't open 100 pages at once.
-   */
-  async processQueue() {
-    if (this.isGenerating || this.queue.length === 0) return;
-    this.isGenerating = true;
-    const task = this.queue.shift();
-    if (task) {
-      try {
-        await task();
-      } catch (err) {
-        console.error("PDF Worker Queue Error:", err);
-      }
-    }
-    this.isGenerating = false;
-    this.processQueue();
-  }
-  /**
-   * Generates a PDF from an HTML string using a queue mechanism.
-   * Only one PDF is generated at a time by this instance to guarantee stable memory.
-   */
-  async generateFromHtml(html) {
-    return new Promise((resolve, reject) => {
-      this.queue.push(async () => {
-        if (!this.browser) {
-          return reject(new Error("PDFService is not initialized. Call init() first."));
-        }
-        let page;
-        try {
-          page = await this.browser.newPage();
-          await page.setContent(html, { waitUntil: "networkidle0" });
-          const pdfBuffer = await page.pdf({
-            format: "A4",
-            printBackground: true,
-            margin: { top: "1cm", right: "1cm", bottom: "1cm", left: "1cm" }
-          });
-          resolve(Buffer.from(pdfBuffer));
-        } catch (error) {
-          reject(error);
-        } finally {
-          if (page) {
-            await page.close();
-          }
-        }
-      });
-      this.processQueue();
-    });
-  }
-  /**
-   * Graceful shutdown function to close the browser cleanly.
+   * Graceful shutdown. No-op for pdfmake, but kept for backwards compatibility.
    */
   async close() {
-    if (this.browser) {
-      await this.browser.close();
-      this.browser = null;
-    }
   }
 };
 var pdfService = new PDFService();
@@ -450,24 +403,239 @@ var cronService = {
     return scheduledJob;
   }
 };
+
+// src/sso/types.ts
+var import_zod6 = require("zod");
+var SSOEnvSchema = import_zod6.z.object({
+  CLIENT_ID: import_zod6.z.string(),
+  CLIENT_SECRET: import_zod6.z.string()
+});
+
+// src/sso/google.ts
+var import_zod7 = require("zod");
+var GoogleEnvSchema = import_zod7.z.object({
+  GOOGLE_CLIENT_ID: import_zod7.z.string(),
+  GOOGLE_CLIENT_SECRET: import_zod7.z.string()
+});
+function createGoogleSSO(config) {
+  return {
+    getAuthUrl(redirectUri) {
+      const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+      url.searchParams.set("client_id", config.clientId);
+      url.searchParams.set("redirect_uri", redirectUri);
+      url.searchParams.set("response_type", "code");
+      url.searchParams.set("scope", "openid email profile");
+      url.searchParams.set("access_type", "offline");
+      url.searchParams.set("prompt", "select_account");
+      return url.toString();
+    },
+    async verifyCallback(code, redirectUri) {
+      const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: new URLSearchParams({
+          code,
+          client_id: config.clientId,
+          client_secret: config.clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code"
+        })
+      });
+      if (!tokenResponse.ok) {
+        throw new Error("Google token exchange failed");
+      }
+      const tokens = await tokenResponse.json();
+      const userResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: {
+          "Authorization": `Bearer ${tokens.access_token}`
+        }
+      });
+      if (!userResponse.ok) {
+        throw new Error("Failed to fetch Google user info");
+      }
+      const user = await userResponse.json();
+      return {
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+        sub: user.sub,
+        idToken: tokens.id_token,
+        accessToken: tokens.access_token
+      };
+    }
+  };
+}
+function createGoogleSSOFromEnv(env = process.env) {
+  const parsed = GoogleEnvSchema.parse(env);
+  return createGoogleSSO({
+    clientId: parsed.GOOGLE_CLIENT_ID,
+    clientSecret: parsed.GOOGLE_CLIENT_SECRET
+  });
+}
+
+// src/sso/microsoft.ts
+var import_zod8 = require("zod");
+var MicrosoftEnvSchema = import_zod8.z.object({
+  MICROSOFT_CLIENT_ID: import_zod8.z.string(),
+  MICROSOFT_CLIENT_SECRET: import_zod8.z.string(),
+  MICROSOFT_TENANT_ID: import_zod8.z.string().default("common")
+});
+function createMicrosoftSSO(config) {
+  const baseUrl = `https://login.microsoftonline.com/${config.tenantId}`;
+  return {
+    getAuthUrl(redirectUri) {
+      const url = new URL(`${baseUrl}/oauth2/v2.0/authorize`);
+      url.searchParams.set("client_id", config.clientId);
+      url.searchParams.set("redirect_uri", redirectUri);
+      url.searchParams.set("response_type", "code");
+      url.searchParams.set("scope", "openid email profile User.Read");
+      url.searchParams.set("response_mode", "query");
+      return url.toString();
+    },
+    async verifyCallback(code, redirectUri) {
+      const tokenResponse = await fetch(`${baseUrl}/oauth2/v2.0/token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: new URLSearchParams({
+          code,
+          client_id: config.clientId,
+          client_secret: config.clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code"
+        })
+      });
+      if (!tokenResponse.ok) {
+        throw new Error("Microsoft token exchange failed");
+      }
+      const tokens = await tokenResponse.json();
+      const userResponse = await fetch("https://graph.microsoft.com/v1.0/me", {
+        headers: {
+          "Authorization": `Bearer ${tokens.access_token}`
+        }
+      });
+      if (!userResponse.ok) {
+        throw new Error("Failed to fetch Microsoft user info");
+      }
+      const user = await userResponse.json();
+      return {
+        email: user.mail || user.userPrincipalName,
+        name: user.displayName,
+        sub: user.id,
+        idToken: tokens.id_token,
+        accessToken: tokens.access_token
+      };
+    }
+  };
+}
+function createMicrosoftSSOFromEnv(env = process.env) {
+  const parsed = MicrosoftEnvSchema.parse(env);
+  return createMicrosoftSSO({
+    clientId: parsed.MICROSOFT_CLIENT_ID,
+    clientSecret: parsed.MICROSOFT_CLIENT_SECRET,
+    tenantId: parsed.MICROSOFT_TENANT_ID
+  });
+}
+
+// src/sso/zoho.ts
+var import_zod9 = require("zod");
+var ZohoEnvSchema = import_zod9.z.object({
+  ZOHO_CLIENT_ID: import_zod9.z.string(),
+  ZOHO_CLIENT_SECRET: import_zod9.z.string(),
+  ZOHO_REGION: import_zod9.z.string().default("com")
+  // com, in, eu, etc.
+});
+function createZohoSSO(config) {
+  const accountsUrl = `https://accounts.zoho.${config.region}`;
+  return {
+    getAuthUrl(redirectUri) {
+      const url = new URL(`${accountsUrl}/oauth/v2/auth`);
+      url.searchParams.set("client_id", config.clientId);
+      url.searchParams.set("redirect_uri", redirectUri);
+      url.searchParams.set("response_type", "code");
+      url.searchParams.set("scope", "AaaServer.profile.Read");
+      url.searchParams.set("access_type", "offline");
+      url.searchParams.set("prompt", "consent");
+      return url.toString();
+    },
+    async verifyCallback(code, redirectUri) {
+      const tokenResponse = await fetch(`${accountsUrl}/oauth/v2/token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: new URLSearchParams({
+          code,
+          client_id: config.clientId,
+          client_secret: config.clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code"
+        })
+      });
+      if (!tokenResponse.ok) {
+        const error = await tokenResponse.text();
+        throw new Error(`Zoho token exchange failed: ${error}`);
+      }
+      const tokens = await tokenResponse.json();
+      const userResponse = await fetch(`https://accounts.zoho.${config.region}/oauth/user/info`, {
+        headers: {
+          "Authorization": `Zoho-oauthtoken ${tokens.access_token}`
+        }
+      });
+      if (!userResponse.ok) {
+        throw new Error("Failed to fetch Zoho user info");
+      }
+      const user = await userResponse.json();
+      return {
+        email: user.Email,
+        name: `${user.First_Name} ${user.Last_Name}`,
+        sub: user.ZUID.toString(),
+        idToken: tokens.id_token || "",
+        // Zoho might not provide id_token if not requested/configured
+        accessToken: tokens.access_token
+      };
+    }
+  };
+}
+function createZohoSSOFromEnv(env = process.env) {
+  const parsed = ZohoEnvSchema.parse(env);
+  return createZohoSSO({
+    clientId: parsed.ZOHO_CLIENT_ID,
+    clientSecret: parsed.ZOHO_CLIENT_SECRET,
+    region: parsed.ZOHO_REGION
+  });
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   AuthEnvSchema,
   EmailEnvSchema,
+  GoogleEnvSchema,
+  MicrosoftEnvSchema,
   PDFService,
   PaymentEnvSchema,
+  SSOEnvSchema,
   StorageEnvSchema,
   WhatsAppEnvSchema,
+  ZohoEnvSchema,
   createAuth,
   createAuthFromEnv,
   createEmailClient,
   createEmailClientFromEnv,
+  createGoogleSSO,
+  createGoogleSSOFromEnv,
+  createMicrosoftSSO,
+  createMicrosoftSSOFromEnv,
   createPaymentClient,
   createPaymentClientFromEnv,
   createStorageClient,
   createStorageClientFromEnv,
   createWhatsAppClient,
   createWhatsAppClientFromEnv,
+  createZohoSSO,
+  createZohoSSOFromEnv,
   cronService,
   pdfService,
   qrService

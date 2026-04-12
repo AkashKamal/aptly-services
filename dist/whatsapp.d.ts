@@ -19,7 +19,7 @@ declare function createWhatsAppClient(config: WhatsAppConfig): {
     /**
      * Sends a template message via Meta WhatsApp Cloud API.
      */
-    sendTemplateMessage(options: SendMessageOptions): Promise<unknown>;
+    sendTemplateMessage(options: SendMessageOptions): Promise<any>;
 };
 /**
  * Validates Coolify environment variables and instantiates the WhatsApp wrapper.
@@ -28,7 +28,7 @@ declare function createWhatsAppClientFromEnv(env?: Record<string, string | undef
     /**
      * Sends a template message via Meta WhatsApp Cloud API.
      */
-    sendTemplateMessage(options: SendMessageOptions): Promise<unknown>;
+    sendTemplateMessage(options: SendMessageOptions): Promise<any>;
 };
 
 export { type SendMessageOptions, type WhatsAppConfig, type WhatsAppEnvConfig, WhatsAppEnvSchema, createWhatsAppClient, createWhatsAppClientFromEnv };

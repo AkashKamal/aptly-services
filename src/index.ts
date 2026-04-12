@@ -6,3 +6,4 @@ export * from './qr';
 export * from './whatsapp';
 export * from './payment';
 export * from './cron';
+export * from './sso';

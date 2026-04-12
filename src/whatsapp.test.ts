@@ -35,6 +35,34 @@ describe('WhatsApp Module', () => {
     }));
   });
 
+  it('should send a template message with complex components', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ messaging_product: 'whatsapp', messages: [{ id: 'wa-id' }] })
+    });
+
+    await client.sendTemplateMessage({
+      to: '1234567890',
+      template: 'order_update',
+      components: [
+        {
+          type: 'body',
+          parameters: [{ type: 'text', text: 'Order #123' }]
+        },
+        {
+          type: 'button',
+          sub_type: 'url',
+          index: 0,
+          parameters: [{ type: 'text', text: 'VIEW_DETAILS' }]
+        }
+      ]
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+      body: expect.stringContaining('VIEW_DETAILS')
+    }));
+  });
+
   it('should throw an error on API failure', async () => {
     (global.fetch as any).mockResolvedValue({
       ok: false,

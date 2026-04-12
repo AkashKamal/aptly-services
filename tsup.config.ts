@@ -11,6 +11,7 @@ export default defineConfig({
     whatsapp: 'src/whatsapp.ts',
     qr: 'src/qr.ts',
     cron: 'src/cron.ts',
+    sso: 'src/sso/index.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,

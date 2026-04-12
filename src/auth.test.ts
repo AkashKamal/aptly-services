@@ -42,4 +42,23 @@ describe('Auth Module', () => {
     
     expect(() => createAuthFromEnv(invalidEnv)).toThrow();
   });
+
+  it('should throw error for expired tokens', () => {
+    const expiredAuth = createAuth({ ...config, sessionDuration: '-1s' });
+    const token = expiredAuth.generateToken({ id: 1 });
+    
+    expect(() => auth.verifyToken(token)).toThrow();
+  });
+
+  it('should throw error for malformed tokens', () => {
+    expect(() => auth.verifyToken('not-a-token')).toThrow();
+    expect(() => auth.verifyToken('')).toThrow();
+  });
+
+  it('should throw error if secret is changed', () => {
+    const token = auth.generateToken({ id: 1 });
+    const otherAuth = createAuth({ ...config, jwtSecret: 'different-secret-123456' });
+    
+    expect(() => otherAuth.verifyToken(token)).toThrow();
+  });
 });
